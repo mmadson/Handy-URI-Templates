@@ -20,18 +20,8 @@ import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Array;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.regex.Pattern;
 
 import com.damnhandy.uri.template.impl.Modifier;
@@ -804,11 +794,31 @@ public class UriTemplate implements Serializable
       {
 
          String key = entry.getKey();
-         checkValue(entry.getValue());
-         String pair = expandStringValue(operator, varSpec, key, VarSpec.VarFormat.PAIRS) + pairJoiner
-               + expandStringValue(operator, varSpec, entry.getValue().toString(), VarSpec.VarFormat.PAIRS);
+         if (entry.getValue() instanceof Collection)
+         {
+            VarSpec resolvedVarSpec = new VarSpec(key, varSpec.getModifier());
+            stringValues.add(expandCollection(operator, resolvedVarSpec, (Collection) entry.getValue()));
+         }
+         else if (entry.getValue().getClass().isArray())
+         {
+            VarSpec resolvedVarSpec = new VarSpec(key, varSpec.getModifier());
+            Object[] arr = (Object[]) entry.getValue();
+            ArrayList list = new ArrayList();
+            Collections.addAll(list, arr);
+            stringValues.add(expandCollection(operator, resolvedVarSpec, list));
+         }
+         else if (entry.getValue() instanceof Map)
+         {
+            VarSpec resolvedVarSpec = new VarSpec(key, varSpec.getModifier());
+            stringValues.add(expandMap(operator, resolvedVarSpec, (Map<String, Object>) entry.getValue()));
+         }
+         else
+         {
+            String pair = expandStringValue(operator, varSpec, key, VarSpec.VarFormat.PAIRS) + pairJoiner
+                  + expandStringValue(operator, varSpec, entry.getValue().toString(), VarSpec.VarFormat.PAIRS);
+            stringValues.add(pair);
+         }
 
-         stringValues.add(pair);
       }
 
       if (varSpec.getModifier() != Modifier.EXPLODE
